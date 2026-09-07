@@ -1,0 +1,23 @@
+* text=auto
+*.sh text eol=lf
+*.py text eol=lf
+*.mjs text eol=lf
+*.dart text eol=lf
+*.kt text eol=lf
+*.kts text eol=lf
+*.swift text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.bat text eol=crlf
+**/gradlew text eol=lf
+*.jpg binary
+*.png binary
+*.ttf binary
+*.jar binary
+# Preserve upstream license bytes and their recorded SHA-256 values.
+release/licenses/runtime/*.txt -text -whitespace
+mobile/licenses/*.txt -text -whitespace
+release/licenses/arduino-esp32-LGPL-2.1.md -whitespace
+firmware/assets/TouchSansJP-OFL.txt -whitespace

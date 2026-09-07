@@ -1,0 +1,621 @@
+package io.github.corvelis.touch_card
+
+import android.nfc.NfcAdapter
+import android.nfc.Tag
+import android.nfc.TagLostException
+import android.nfc.tech.NfcA
+import android.os.Bundle
+import android.util.Log
+import android.view.WindowManager
+import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodCall
+import io.flutter.plugin.common.MethodChannel
+import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
+
+class MainActivity : FlutterActivity(), NfcAdapter.ReaderCallback, EventChannel.StreamHandler {
+    companion object {
+        private const val TAG = "PaperMonoNfc"
+        private const val METHOD_CHANNEL = "io.github.corvelis.touch_card/methods"
+        private const val EVENT_CHANNEL = "io.github.corvelis.touch_card/events"
+        private const val TRANSCEIVE_TIMEOUT_MS = 1000
+        private const val COMMIT_POLL_MS = 200L
+        private const val COMMIT_TRACK_MS = 30_000L
+        private const val DATA_INTER_COMMAND_MS = 8L
+        private const val INVALID_RESPONSE_RETRY_MS = 10L
+        private const val EXCHANGE_ATTEMPTS = 3
+        private const val PREFERRED_DATA_PAYLOAD_BYTES = 128
+        private const val FALLBACK_DATA_PAYLOAD_BYTES = 64
+    }
+
+    @Volatile private var pendingTransfer: PendingTransfer? = null
+    @Volatile private var eventSink: EventChannel.EventSink? = null
+    private val tagStateLock = Any()
+    private var transferRunning = false
+    private var queuedTag: Tag? = null
+    private val cancelled = AtomicBoolean(false)
+    private var nfcAdapter: NfcAdapter? = null
+    private var readerModeEnabled = false
+    @Volatile private var dataPayloadLimit = PREFERRED_DATA_PAYLOAD_BYTES
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL)
+            .setMethodCallHandler(::handleMethodCall)
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL)
+            .setStreamHandler(this)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.i(TAG, "onResume pending=${pendingTransfer != null}")
+        if (pendingTransfer != null) enableReaderMode()
+    }
+
+    override fun onPause() {
+        Log.i(TAG, "onPause pending=${pendingTransfer != null}; disabling reader mode")
+        disableReaderMode()
+        super.onPause()
+    }
+
+    override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+        eventSink = events
+    }
+
+    override fun onCancel(arguments: Any?) {
+        eventSink = null
+    }
+
+    private fun handleMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        when (call.method) {
+            "isAvailable" -> result.success(nfcAdapter?.isEnabled == true)
+            "startTransfer" -> startTransfer(call, result)
+            "syncClock" -> syncClock(call, result)
+            "cancelTransfer" -> {
+                cancelled.set(true)
+                pendingTransfer = null
+                disableReaderMode()
+                setTransferKeepsScreenOn(false)
+                emit("idle", message = "送信を中止しました。")
+                result.success(null)
+            }
+            else -> result.notImplemented()
+        }
+    }
+
+    private fun startTransfer(call: MethodCall, result: MethodChannel.Result) {
+        if (synchronized(tagStateLock) { transferRunning }) {
+            result.error("TRANSFER_IN_PROGRESS", "前のNFC通信を終了しています。", null)
+            return
+        }
+        val adapter = nfcAdapter
+        if (adapter == null) {
+            result.error("NFC_UNAVAILABLE", "このAndroid端末はNFCに対応していません。", null)
+            return
+        }
+        if (!adapter.isEnabled) {
+            result.error("NFC_DISABLED", "AndroidのNFCを有効にしてください。", null)
+            return
+        }
+        val bytes = call.argument<ByteArray>("bytes")
+        val mode = call.numberArgument("mode")?.toInt()
+        val width = call.numberArgument("width")?.toInt()
+        val height = call.numberArgument("height")?.toInt()
+        val crc32 = call.numberArgument("crc32")?.toLong()?.and(0xffffffffL)
+        val transferId = call.numberArgument("transferId")?.toLong()?.and(0xffffffffL)
+        if (bytes == null || mode == null || width == null || height == null || crc32 == null ||
+            transferId == null
+        ) {
+            result.error("INVALID_ARGUMENTS", "送信パラメータが不足しています。", null)
+            return
+        }
+        if (bytes.isEmpty() || bytes.size > PaperMonoProtocol.MAX_IMAGE_BYTES || transferId == 0L || mode !in 1..4 || width != 0 || height != 0) {
+            result.error("INVALID_IMAGE", "データサイズまたは転送IDが不正です。", null)
+            return
+        }
+        pendingTransfer = PendingTransfer(
+            bytes, mode, width, height, crc32, transferId,
+            unixTimeSeconds = 0, utcOffsetMinutes = 0,
+        )
+        dataPayloadLimit = PREFERRED_DATA_PAYLOAD_BYTES
+        cancelled.set(false)
+        setTransferKeepsScreenOn(true)
+        Log.i(TAG, "startTransfer id=$transferId bytes=${bytes.size} mode=$mode ${width}x$height")
+        emit("waitingForTag", 0, bytes.size, 0, "本体にスマートフォンを当ててください。")
+        enableReaderMode()
+        result.success(null)
+    }
+
+    private fun syncClock(call: MethodCall, result: MethodChannel.Result) {
+        if (synchronized(tagStateLock) { transferRunning }) {
+            result.error("TRANSFER_IN_PROGRESS", "前のNFC通信を終了しています。", null)
+            return
+        }
+        val adapter = nfcAdapter
+        if (adapter == null) {
+            result.error("NFC_UNAVAILABLE", "このAndroid端末はNFCに対応していません。", null)
+            return
+        }
+        if (!adapter.isEnabled) {
+            result.error("NFC_DISABLED", "AndroidのNFCを有効にしてください。", null)
+            return
+        }
+        val unixTimeSeconds = call.numberArgument("unixTimeSeconds")?.toLong()
+        val utcOffsetMinutes = call.numberArgument("utcOffsetMinutes")?.toInt()
+        if (unixTimeSeconds == null || utcOffsetMinutes == null ||
+            !validClock(unixTimeSeconds, utcOffsetMinutes)
+        ) {
+            result.error("INVALID_TIME", "スマートフォンの時刻またはタイムゾーンが不正です。", null)
+            return
+        }
+        pendingTransfer = PendingTransfer(
+            ByteArray(0), 0, 0, 0, 0, 0,
+            unixTimeSeconds, utcOffsetMinutes, clockOnly = true,
+        )
+        cancelled.set(false)
+        setTransferKeepsScreenOn(true)
+        emit("waitingForTag", message = "本体にスマートフォンを当ててください。")
+        enableReaderMode()
+        result.success(null)
+    }
+
+    private fun validClock(unixTimeSeconds: Long, utcOffsetMinutes: Int): Boolean =
+        unixTimeSeconds in 1_672_531_200L until 4_102_444_800L && utcOffsetMinutes in -840..840
+
+    private fun MethodCall.numberArgument(name: String): Number? = argument<Number>(name)
+
+    private fun enableReaderMode() {
+        val adapter = nfcAdapter ?: return
+        if (readerModeEnabled || pendingTransfer == null || isFinishing) {
+            Log.i(
+                TAG,
+                "enableReaderMode skipped enabled=$readerModeEnabled pending=${pendingTransfer != null} finishing=$isFinishing",
+            )
+            return
+        }
+        adapter.enableReaderMode(
+            this,
+            this,
+            NfcAdapter.FLAG_READER_NFC_A or
+                NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK or
+                NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
+            Bundle(),
+        )
+        readerModeEnabled = true
+        Log.i(TAG, "Reader Mode enabled flags=NFC_A|SKIP_NDEF_CHECK|NO_PLATFORM_SOUNDS")
+    }
+
+    private fun disableReaderMode() {
+        if (!readerModeEnabled) return
+        nfcAdapter?.disableReaderMode(this)
+        readerModeEnabled = false
+        Log.i(TAG, "Reader Mode disabled")
+    }
+
+    private fun setTransferKeepsScreenOn(enabled: Boolean) {
+        runOnUiThread {
+            if (enabled) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+            Log.i(TAG, "keepScreenOn=$enabled")
+        }
+    }
+
+    override fun onTagDiscovered(tag: Tag) {
+        synchronized(tagStateLock) {
+            if (transferRunning) {
+                // A passive Paper Mono target can briefly leave and re-enter
+                // the RF field while it persists the image. Android then
+                // invalidates the old Tag object before the current callback
+                // finishes. Keep the newly issued Tag so the transfer can
+                // continue without showing a false failure.
+                queuedTag = tag
+                Log.i(TAG, "tag rediscovered while transfer is active; queued replacement")
+                return
+            }
+            transferRunning = true
+        }
+
+        var currentTag = tag
+        while (true) {
+            val retryMessage = processDiscoveredTag(currentTag)
+            val nextTag = synchronized(tagStateLock) {
+                val replacement = if (pendingTransfer != null) queuedTag else null
+                queuedTag = null
+                if (replacement == null) {
+                    if (retryMessage != null) {
+                        pendingTransfer?.let { emitRecoverable(it, retryMessage) }
+                    }
+                    transferRunning = false
+                }
+                replacement
+            }
+            if (nextTag == null) return
+
+            Log.i(TAG, "continuing transfer with rediscovered tag")
+            currentTag = nextTag
+        }
+    }
+
+    private fun processDiscoveredTag(tag: Tag): String? {
+        val transfer = pendingTransfer ?: return null
+        Log.i(TAG, "tag discovered tech=${tag.techList.joinToString()} idBytes=${tag.id?.size ?: 0}")
+        val nfcA = NfcA.get(tag)
+        if (nfcA == null) {
+            Log.w(TAG, "discovered tag does not expose NfcA")
+            return "NFC-Aタグではありません。"
+        }
+
+        try {
+            nfcA.connect()
+            nfcA.timeout = TRANSCEIVE_TIMEOUT_MS
+            Log.i(TAG, "NfcA connected maxTransceiveLength=${nfcA.maxTransceiveLength}")
+            if (nfcA.maxTransceiveLength < 61) {
+                throw ProtocolException(
+                    "TRANSCEIVE_LIMIT_TOO_SMALL",
+                    "このAndroid端末のNFCコマンド上限が61バイト未満です。",
+                )
+            }
+            emit("connected", 0, transfer.bytes.size, 0, "本体に接続しました。")
+            performTransfer(nfcA, transfer)
+        } catch (error: TagLostException) {
+            Log.w(TAG, "tag lost", error)
+            return "接続が切れました。もう一度本体に当ててください。"
+        } catch (error: IOException) {
+            Log.w(TAG, "NFC I/O error", error)
+            return error.message ?: "NFC通信に失敗しました。"
+        } catch (error: SecurityException) {
+            if (error.isOutdatedNfcTag()) {
+                Log.w(TAG, "Android invalidated the active tag; waiting for replacement", error)
+                return "NFCタグを再接続しています。本体に当てたままにしてください。"
+            }
+            Log.e(TAG, "NFC permission error", error)
+            pendingTransfer = null
+            setTransferKeepsScreenOn(false)
+            emit("failed", 0, transfer.bytes.size, 0, error.message ?: error.toString(), "NFC_PERMISSION_ERROR")
+            runOnUiThread { disableReaderMode() }
+        } catch (error: ProtocolException) {
+            Log.w(TAG, "protocol error code=${error.code}", error)
+            if (error.code == "CANCELLED") {
+                tryAbort(nfcA, transfer)
+            } else if (error.code == "TRANSFER_ID_MISMATCH") {
+                return "転送応答を再同期します。もう一度本体へ当ててください。"
+            } else {
+                pendingTransfer = null
+                setTransferKeepsScreenOn(false)
+                emit("failed", 0, transfer.bytes.size, 0, error.message, error.code)
+                runOnUiThread { disableReaderMode() }
+            }
+        } catch (error: Throwable) {
+            Log.e(TAG, "unexpected NFC transfer error", error)
+            pendingTransfer = null
+            setTransferKeepsScreenOn(false)
+            emit("failed", 0, transfer.bytes.size, 0, error.message ?: error.toString(), "INTERNAL_ERROR")
+            runOnUiThread { disableReaderMode() }
+        } finally {
+            try {
+                nfcA.close()
+            } catch (_: IOException) {
+            } catch (_: SecurityException) {
+                // Android also checks the Tag generation while closing it.
+                // A replacement Tag has already made this handle unusable.
+            }
+        }
+        return null
+    }
+
+    private fun performTransfer(nfcA: NfcA, transfer: PendingTransfer) {
+        ensureNotCancelled()
+        Log.i(TAG, "HELLO send id=${transfer.transferId}")
+        val hello = exchange(nfcA, PaperMonoProtocol.hello(), PaperMonoCommand.HELLO)
+        Log.i(TAG, "HELLO response status=${hello.status}")
+        requireStatus(hello, setOf(PaperMonoStatus.OK))
+        val capabilities = PaperMonoProtocol.parseHello(hello)
+        if (transfer.clockOnly) {
+            if (!capabilities.supportsTimeSync) {
+                throw ProtocolException("TIME_SYNC_UNSUPPORTED", "本体が時刻同期に対応していません。")
+            }
+            emit("clockSyncing", message = "時刻を同期しています。")
+            var timeResponse = exchange(
+                nfcA,
+                PaperMonoProtocol.setTime(transfer.unixTimeSeconds, transfer.utcOffsetMinutes),
+                PaperMonoCommand.SET_TIME,
+            )
+            var clockAttempts = 0
+            while (timeResponse.status == PaperMonoStatus.BUSY && clockAttempts++ < 30) {
+                ensureNotCancelled()
+                Thread.sleep(200)
+                timeResponse = exchange(nfcA, PaperMonoProtocol.setTime(transfer.unixTimeSeconds, transfer.utcOffsetMinutes), PaperMonoCommand.SET_TIME)
+            }
+            requireStatus(timeResponse, setOf(PaperMonoStatus.OK))
+            finishClockSync()
+            return
+        }
+        if (
+            capabilities.maxAcceptedRfFrameBytes < 63 ||
+            capabilities.maxProtocolCommandBytes < 61 ||
+            capabilities.maxDataPayloadBytes < 48 ||
+            capabilities.maxImageBytes < transfer.bytes.size.toLong() ||
+            !capabilities.supportsJsonEnvelope
+        ) {
+            throw ProtocolException("INCOMPATIBLE_LIMITS", "本体が画像転送に必要なv2能力を提供していません。")
+        }
+        if (!capabilities.supportsTypedUpdates) {
+            throw ProtocolException(
+                "FULLSCREEN_UNSUPPORTED",
+                "本体がTouch Cardの用途別更新に対応していません。",
+            )
+        }
+        val dataPayloadBytes = minOf(
+            capabilities.maxDataPayloadBytes,
+            PaperMonoProtocol.MAX_DATA_PAYLOAD_BYTES,
+            dataPayloadLimit,
+            nfcA.maxTransceiveLength - PaperMonoProtocol.DATA_HEADER_BYTES,
+        )
+        Log.i(TAG, "DATA payload bytes=$dataPayloadBytes")
+        if (dataPayloadBytes < 48) {
+            throw ProtocolException(
+                "TRANSCEIVE_LIMIT_TOO_SMALL",
+                "このAndroid端末では48バイト以上のDATAペイロードを送信できません。",
+            )
+        }
+
+        ensureNotCancelled()
+        val begin = exchange(nfcA, PaperMonoProtocol.begin(transfer), PaperMonoCommand.BEGIN)
+        requireTransferId(begin, transfer)
+        requireStatus(
+            begin,
+            setOf(
+                PaperMonoStatus.OK,
+                PaperMonoStatus.ACCEPTED,
+                PaperMonoStatus.RECEIVING,
+                PaperMonoStatus.STORED,
+                PaperMonoStatus.DISPLAYING,
+                PaperMonoStatus.COMPLETED,
+            ),
+        )
+        var offset = begin.nextExpectedOffset.toInt()
+        if (offset !in 0..transfer.bytes.size) {
+            throw ProtocolException("INVALID_OFFSET", "本体が不正な再開位置を返しました。")
+        }
+        when (begin.status) {
+            PaperMonoStatus.STORED -> {
+                emit("stored", transfer.bytes.size, transfer.bytes.size, offset)
+                finishTransfer(transfer)
+                return
+            }
+            PaperMonoStatus.DISPLAYING -> {
+                emit("displaying", transfer.bytes.size, transfer.bytes.size, offset)
+                finishTransfer(transfer)
+                return
+            }
+            PaperMonoStatus.COMPLETED -> {
+                finishTransfer(transfer)
+                return
+            }
+            else -> Unit
+        }
+
+        var stalls = 0
+        while (offset < transfer.bytes.size) {
+            ensureNotCancelled()
+            val end = minOf(offset + dataPayloadBytes, transfer.bytes.size)
+            val payload = transfer.bytes.copyOfRange(offset, end)
+            val response = try {
+                exchange(
+                    nfcA,
+                    PaperMonoProtocol.data(transfer.transferId, offset, payload),
+                    PaperMonoCommand.DATA,
+                )
+            } catch (error: IOException) {
+                if (dataPayloadLimit > FALLBACK_DATA_PAYLOAD_BYTES) {
+                    dataPayloadLimit = FALLBACK_DATA_PAYLOAD_BYTES
+                }
+                throw error
+            }
+            requireTransferId(response, transfer)
+            requireStatus(
+                response,
+                setOf(PaperMonoStatus.OK, PaperMonoStatus.RECEIVING, PaperMonoStatus.BAD_OFFSET),
+            )
+            val next = response.nextExpectedOffset.toInt()
+            if (next !in 0..transfer.bytes.size) {
+                throw ProtocolException("INVALID_OFFSET", "本体が不正な受信位置を返しました。")
+            }
+            stalls = if (next == offset) stalls + 1 else 0
+            if (stalls >= 3) {
+                throw ProtocolException("TRANSFER_STALLED", "本体の受信位置が進みません。")
+            }
+            offset = next
+            emit("receiving", offset, transfer.bytes.size, offset)
+            if (offset < transfer.bytes.size) Thread.sleep(DATA_INTER_COMMAND_MS)
+        }
+
+        ensureNotCancelled()
+        val commit = exchange(
+            nfcA,
+            PaperMonoProtocol.commit(transfer.transferId, transfer.crc32),
+            PaperMonoCommand.COMMIT,
+        )
+        requireTransferId(commit, transfer)
+        handleCommitStatus(commit, transfer)
+        if (commit.status in setOf(PaperMonoStatus.STORED, PaperMonoStatus.DISPLAYING, PaperMonoStatus.COMPLETED)) {
+            // PaperMono may stop RF immediately after durable storage while
+            // refreshing e-paper. Do not misclassify that expected field loss
+            // as a recoverable transfer failure.
+            finishTransfer(transfer)
+            return
+        }
+
+        val deadline = System.currentTimeMillis() + COMMIT_TRACK_MS
+        var latest = commit
+        while (
+            latest.status !in setOf(PaperMonoStatus.STORED, PaperMonoStatus.DISPLAYING, PaperMonoStatus.COMPLETED) &&
+            System.currentTimeMillis() < deadline
+        ) {
+            ensureNotCancelled()
+            Thread.sleep(COMMIT_POLL_MS)
+            latest = exchange(
+                nfcA,
+                PaperMonoProtocol.status(transfer.transferId),
+                PaperMonoCommand.STATUS,
+            )
+            requireTransferId(latest, transfer)
+            handleCommitStatus(latest, transfer)
+        }
+        if (latest.status in setOf(PaperMonoStatus.STORED, PaperMonoStatus.DISPLAYING, PaperMonoStatus.COMPLETED)) {
+            finishTransfer(transfer)
+            return
+        }
+        throw ProtocolException("COMMIT_TIMEOUT", "本体の保存確認がタイムアウトしました。")
+    }
+
+    private fun handleCommitStatus(response: PaperMonoResponse, transfer: PendingTransfer) {
+        when (response.status) {
+            PaperMonoStatus.OK, PaperMonoStatus.ACCEPTED, PaperMonoStatus.VERIFYING ->
+                emit("verifying", transfer.bytes.size, transfer.bytes.size, response.nextExpectedOffset.toInt())
+            PaperMonoStatus.STORED ->
+                emit("stored", transfer.bytes.size, transfer.bytes.size, response.nextExpectedOffset.toInt())
+            PaperMonoStatus.DISPLAYING ->
+                emit("displaying", transfer.bytes.size, transfer.bytes.size, response.nextExpectedOffset.toInt())
+            PaperMonoStatus.COMPLETED -> Unit
+            PaperMonoStatus.CRC_MISMATCH ->
+                throw ProtocolException("CRC_MISMATCH", "本体で画像CRCが一致しませんでした。")
+            PaperMonoStatus.INVALID_JPEG ->
+                throw ProtocolException("INVALID_JPEG", "名刺または画像の形式が不正です。")
+            else -> throw ProtocolException(
+                response.status.name,
+                "本体がCOMMITを拒否しました: ${response.status.name}",
+            )
+        }
+    }
+
+    private fun finishTransfer(transfer: PendingTransfer, emitCompleted: Boolean = true) {
+        pendingTransfer = null
+        setTransferKeepsScreenOn(false)
+        Log.i(TAG, "transfer completed id=${transfer.transferId} bytes=${transfer.bytes.size}")
+        if (emitCompleted) emit("completed", transfer.bytes.size, transfer.bytes.size, transfer.bytes.size, transferId = transfer.transferId)
+        runOnUiThread { disableReaderMode() }
+    }
+
+    private fun finishClockSync() {
+        pendingTransfer = null
+        setTransferKeepsScreenOn(false)
+        emit("clockSynced", message = "本体の時刻を同期しました。")
+        runOnUiThread { disableReaderMode() }
+    }
+
+    private fun exchange(nfcA: NfcA, command: ByteArray, expected: PaperMonoCommand): PaperMonoResponse {
+        var lastError: IOException? = null
+        repeat(EXCHANGE_ATTEMPTS) { attempt ->
+            try {
+                val rawResponse = nfcA.transceive(command)
+                try {
+                    return PaperMonoProtocol.parseResponse(rawResponse, expected)
+                } catch (error: ProtocolException) {
+                    val hex = rawResponse.joinToString(separator = "") {
+                        "%02X".format(it.toInt() and 0xff)
+                    }
+                    Log.w(
+                        TAG,
+                        "invalid response command=$expected bytes=${rawResponse.size} " +
+                            "data=$hex attempt=${attempt + 1}/$EXCHANGE_ATTEMPTS code=${error.code}",
+                    )
+                    if (attempt + 1 >= EXCHANGE_ATTEMPTS) {
+                        // A malformed/truncated RF response is a transport
+                        // failure. All v2 commands are idempotent, so retrying
+                        // is safe; after the final attempt keep the transfer
+                        // pending and let the next tag discovery resume it.
+                        throw IOException(error.message ?: "Invalid PaperMono response", error)
+                    }
+                    Thread.sleep(INVALID_RESPONSE_RETRY_MS)
+                }
+            } catch (error: TagLostException) {
+                throw error
+            } catch (error: IOException) {
+                lastError = error
+                if (attempt + 1 < EXCHANGE_ATTEMPTS) {
+                    Thread.sleep(INVALID_RESPONSE_RETRY_MS)
+                }
+            }
+        }
+        throw lastError ?: IOException("NFC transceive failed")
+    }
+
+    private fun requireTransferId(response: PaperMonoResponse, transfer: PendingTransfer) {
+        if (response.transferId != transfer.transferId) {
+            throw ProtocolException("TRANSFER_ID_MISMATCH", "本体の転送IDが一致しません。")
+        }
+    }
+
+    private fun requireStatus(response: PaperMonoResponse, accepted: Set<PaperMonoStatus>) {
+        if (response.status !in accepted) {
+            throw ProtocolException(response.status.name, "本体がコマンドを拒否しました: ${response.status.name}")
+        }
+    }
+
+    private fun ensureNotCancelled() {
+        if (cancelled.get()) throw ProtocolException("CANCELLED", "送信を中止しました。")
+    }
+
+    private fun tryAbort(nfcA: NfcA, transfer: PendingTransfer) {
+        if (transfer.clockOnly) return
+        try {
+            if (nfcA.isConnected) {
+                nfcA.transceive(PaperMonoProtocol.abort(transfer.transferId))
+            }
+        } catch (_: IOException) {
+            // Cancellation still succeeds locally if the tag has already left.
+        } catch (_: SecurityException) {
+            // Cancellation still succeeds locally if the tag has already left.
+        }
+    }
+
+    private fun emitRecoverable(transfer: PendingTransfer, message: String) {
+        emit("recoverableError", 0, transfer.bytes.size, 0, message, "TAG_LOST")
+        emit("waitingForTag", 0, transfer.bytes.size, 0, "本体へもう一度当てると途中から再開します。")
+    }
+
+    private fun SecurityException.isOutdatedNfcTag(): Boolean =
+        message?.contains("out of date", ignoreCase = true) == true
+
+    private fun emit(
+        phase: String,
+        bytesSent: Int = 0,
+        totalBytes: Int = pendingTransfer?.bytes?.size ?: 0,
+        nextExpectedOffset: Int = 0,
+        message: String? = null,
+        errorCode: String? = null,
+        transferId: Long = pendingTransfer?.transferId ?: 0L,
+    ) {
+        val event = hashMapOf<String, Any>(
+            "phase" to phase,
+            "transferId" to transferId,
+            "bytesSent" to bytesSent,
+            "totalBytes" to totalBytes,
+            "nextExpectedOffset" to nextExpectedOffset,
+        )
+        if (message != null) event["message"] = message
+        if (errorCode != null) event["errorCode"] = errorCode
+        runOnUiThread { eventSink?.success(event) }
+    }
+}
+
+internal data class PendingTransfer(
+    val bytes: ByteArray,
+    val mode: Int,
+    val width: Int,
+    val height: Int,
+    val crc32: Long,
+    val transferId: Long,
+    val unixTimeSeconds: Long,
+    val utcOffsetMinutes: Int,
+    val clockOnly: Boolean = false,
+)
+
+internal class ProtocolException(val code: String, message: String) : Exception(message)

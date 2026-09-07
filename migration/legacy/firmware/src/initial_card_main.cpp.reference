@@ -1,0 +1,201 @@
+#include <Arduino.h>
+#include <M5Unified.h>
+#include <Preferences.h>
+#include "BoardStorage.h"
+#include "RtcClock.h"
+
+namespace {
+BoardStorage storage;
+RtcClock clockValue;
+Preferences settings;
+bool preferencesReady = false;
+enum class Screen { Home, Menu, Settings, Design, Storage, Internal, Sd, Message };
+Screen screen = Screen::Home;
+uint8_t design = 0, focus = 0;
+bool internalOnly = false;
+String message;
+int rowTop = 0, rowHeight = 0, rowCount = 0;
+uint32_t lastClock = 0;
+uint8_t partialRefreshes = 0;
+const char* designs[] = {"タイポグラフィ", "コントラスト", "シンプル"};
+
+String bytes(uint64_t value) {
+  char buffer[48];
+  if (value >= 1024ULL * 1024 * 1024) snprintf(buffer, sizeof(buffer), "%.2f GiB", value / 1073741824.0);
+  else snprintf(buffer, sizeof(buffer), "%.1f MiB", value / 1048576.0);
+  return buffer;
+}
+void label(const String& value, int x, int y, int size = 1) {
+  M5.Display.setTextSize(size);
+  M5.Display.drawString(value, x, y);
+}
+void status() {
+  auto& d = M5.Display;
+  d.fillRect(0, 0, d.width(), 30, TFT_WHITE);
+  d.setTextColor(TFT_BLACK, TFT_WHITE);
+  char buffer[16] = "--:--";
+  auto local = clockValue.localTime();
+  if (local.valid) strftime(buffer, sizeof(buffer), "%H:%M", &local.value);
+  label(buffer, 16, 6);
+  const int battery = M5.Power.getBatteryLevel();
+  label(battery < 0 ? "--%" : String(battery) + "%", d.width() - 66, 6);
+}
+void rows(std::initializer_list<String> entries) {
+  auto& d = M5.Display;
+  rowCount = entries.size();
+  rowTop = 70;
+  rowHeight = min(76, (d.height() - 100) / max(1, rowCount));
+  int i = 0;
+  for (const auto& entry : entries) {
+    const int y = rowTop + i * rowHeight;
+    if (i == focus) d.drawRoundRect(8, y, d.width() - 16, rowHeight - 2, 4, TFT_BLACK);
+    label(entry, 20, y + (rowHeight - 16) / 2);
+    ++i;
+  }
+}
+void draw() {
+  partialRefreshes = 0;
+  auto& d = M5.Display;
+#if TOUCH_CARD_PAPER_MONO
+  d.setEpdMode(epd_mode_t::epd_quality);
+#endif
+  d.startWrite();
+  d.fillScreen(TFT_WHITE);
+  d.setFont(&fonts::efontJA_16);
+  status();
+  rowCount = 0;
+  switch (screen) {
+    case Screen::Home:
+      d.drawFastHLine(20, 56, d.width() - 40, TFT_BLACK);
+      label("名刺を作りましょう", 20, d.height() / 3, d.width() > 400 ? 2 : 1);
+      label("スマホアプリで名前と画像を保存", 20, d.height() / 3 + 48);
+      label("開発版：NFC接続は準備中", 20, d.height() - 68);
+      label("タップしてメニュー", 20, d.height() - 38);
+      break;
+    case Screen::Menu:
+      label("メニュー", 20, 42);
+      rows({"名刺交換", "名刺帳", "ホーム表示", "設定"});
+      break;
+    case Screen::Settings:
+      label("設定", 20, 42);
+      rows({"名刺デザイン", "ストレージ", "スマホから更新", "戻る"});
+      break;
+    case Screen::Design:
+      label("名刺デザイン", 20, 42);
+      rows({String(design == 0 ? "✓ " : "  ") + designs[0],
+            String(design == 1 ? "✓ " : "  ") + designs[1],
+            String(design == 2 ? "✓ " : "  ") + designs[2], "戻る"});
+      break;
+    case Screen::Storage:
+      label("ストレージ", 20, 42);
+      rows({"本体", "microSD", internalOnly ? "保存先：本体" : "保存先：自動（SD優先）", "戻る"});
+      break;
+    case Screen::Internal:
+    case Screen::Sd: {
+      const bool isSd = screen == Screen::Sd;
+      const auto& u = isSd ? storage.sd : storage.internal;
+      label(isSd ? "microSD" : "本体ストレージ", 20, 42);
+      if (u.state == touchcard::MediaState::Ready && u.valid()) {
+        label("総容量 " + bytes(u.total), 20, 72);
+        label("使用量 " + bytes(u.used), 20, 96);
+        label("空き容量 " + bytes(u.free()), 20, 120);
+        label("名刺用（暫定） " + bytes(u.available()), 20, 144);
+      } else {
+        label(u.state == touchcard::MediaState::Absent ? "未装着 —" :
+              u.state == touchcard::MediaState::Ejected ? "取り外し可能 —" : "認識できません —", 20, 80);
+        label("自動初期化は行いません", 20, 112);
+      }
+      label(isSd ? "左下：再読込  右下：取り外す" : "タップして戻る", 16, d.height() - 32);
+      break;
+    }
+    case Screen::Message:
+      label(message, 20, 76);
+      label("タップしてメニューへ", 20, d.height() - 38);
+      break;
+  }
+  d.endWrite();
+  d.display();
+}
+void navigate(Screen next) { screen = next; focus = 0; draw(); }
+void notice(const String& value) { message = value; navigate(Screen::Message); }
+void activate(int row) {
+  if (screen == Screen::Menu) {
+    if (row == 3) navigate(Screen::Settings);
+    else notice(row == 0 ? "名刺交換：接続処理を実装中" : row == 1 ? "名刺帳：保存処理を実装中" : "画像ホーム：実装中");
+  } else if (screen == Screen::Settings) {
+    if (row == 0) navigate(Screen::Design);
+    else if (row == 1) navigate(Screen::Storage);
+    else if (row == 2) notice("NFC更新：接続処理を実装中");
+    else navigate(Screen::Menu);
+  } else if (screen == Screen::Design) {
+    if (row == 3) navigate(Screen::Settings);
+    else if (!preferencesReady || settings.putUChar("design", row) != 1) notice("設定を保存できません");
+    else { design = row; draw(); }
+  } else if (screen == Screen::Storage) {
+    if (row == 0) { storage.refreshInternal(); navigate(Screen::Internal); }
+    else if (row == 1) navigate(Screen::Sd);
+    else if (row == 2) {
+      if (!preferencesReady || settings.putBool("internalOnly", !internalOnly) != 1) notice("設定を保存できません");
+      else { internalOnly = !internalOnly; draw(); }
+    } else navigate(Screen::Settings);
+  }
+}
+void tap(int x, int y) {
+  if (screen == Screen::Home || screen == Screen::Message) navigate(Screen::Menu);
+  else if (screen == Screen::Internal) navigate(Screen::Storage);
+  else if (screen == Screen::Sd) {
+    if (y >= M5.Display.height() - 44) {
+      if (x < M5.Display.width() / 2) storage.mountSd(); else storage.eject();
+      draw();
+    } else navigate(Screen::Storage);
+  } else if (y >= rowTop && y < rowTop + rowCount * rowHeight) activate((y - rowTop) / rowHeight);
+  else if (y < 40) navigate(Screen::Home);
+}
+}
+
+void setup() {
+  Serial.begin(115200);
+  auto config = M5.config();
+  config.internal_imu = false;
+  config.internal_mic = false;
+  config.internal_spk = false;
+  config.internal_rtc = true;
+  M5.begin(config);
+#if TOUCH_CARD_PAPER_MONO
+  M5.Display.setRotation(0);
+  M5.Display.setBrightness(64);
+#else
+  M5.Display.setRotation(1);
+#endif
+  preferencesReady = settings.begin("touch_card", false);
+  if (preferencesReady) {
+    design = settings.getUChar("design", 0);
+    if (design > 2) design = 0;
+    internalOnly = settings.getBool("internalOnly", false);
+  }
+  clockValue.begin();
+  storage.begin();
+  draw();
+}
+void loop() {
+  M5.update();
+  if (M5.Touch.getCount()) {
+    const auto touch = M5.Touch.getDetail();
+    if (touch.wasClicked()) tap(touch.x, touch.y);
+  }
+  if (M5.BtnA.wasHold()) navigate(screen == Screen::Home ? Screen::Menu : Screen::Home);
+  else if (M5.BtnA.wasClicked() && rowCount) { focus = (focus + 1) % rowCount; draw(); }
+  if (M5.BtnB.wasClicked()) {
+    if (rowCount) activate(focus); else navigate(Screen::Menu);
+  }
+  if (millis() - lastClock >= 60000) {
+    lastClock = millis();
+#if TOUCH_CARD_PAPER_MONO
+    if (++partialRefreshes >= 10) { draw(); return; }
+    M5.Display.setEpdMode(epd_mode_t::epd_text);
+#endif
+    status();
+    M5.Display.display();
+  }
+  delay(10);
+}

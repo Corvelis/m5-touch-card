@@ -1,0 +1,71 @@
+name: Checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [paper-mono, stackchan, paper-mono-en, stackchan-en]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+      - run: pip install platformio==6.1.19
+      - run: pio run -d firmware -e ${{ matrix.board }}
+      - name: Reject GNU FreeFont bitmap linkage
+        run: >-
+          python3 scripts/release/check_linked_fonts.py
+          --nm "$HOME/.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-nm"
+          --elf firmware/.pio/build/${{ matrix.board }}/firmware.elf
+      - if: matrix.board == 'paper-mono'
+        run: |
+          cmake -S . -B build/native-tests
+          cmake --build build/native-tests --parallel 4
+          ctest --test-dir build/native-tests --output-on-failure
+
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Install tested Flutter SDK
+        run: |
+          git clone --depth 1 --branch 3.32.8 https://github.com/flutter/flutter.git "$RUNNER_TEMP/touch-card-flutter"
+          test "$(git -C "$RUNNER_TEMP/touch-card-flutter" rev-parse HEAD)" = edada7c56edf4a183c1735310e123c7f923584f1
+          echo "$RUNNER_TEMP/touch-card-flutter/bin" >> "$GITHUB_PATH"
+      - working-directory: mobile
+        run: |
+          flutter pub get --enforce-lockfile
+          git diff --exit-code -- pubspec.lock
+          flutter analyze
+          flutter test
+
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - run: |
+          python3 -m unittest discover -s scripts/release -p 'test_*.py'
+          node scripts/check_public_source.mjs --self-test
+          node --test scripts/check_public_source.test.mjs
+          node scripts/check_public_source.mjs
+          node scripts/check_public_source.mjs --staged

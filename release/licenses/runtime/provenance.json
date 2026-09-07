@@ -1,0 +1,92 @@
+[
+  {
+    "file": "esp_littlefs-MIT.txt",
+    "source": "https://raw.githubusercontent.com/joltwallet/esp_littlefs/41873c20fb5cdbcf28d7d6cc04e4bcb4a1305317/LICENSE",
+    "sha256": "b6bbf3bd17c2b5532bc25a7acf1760faac0b995d6e0ad8bec29435166727d4c5"
+  },
+  {
+    "file": "ESP-IDF-Apache-2.0.txt",
+    "source": "https://raw.githubusercontent.com/espressif/esp-idf/38eeba213aa695aabfd6d89aa9f5078dbe5a94c3/LICENSE",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "esp-phy-lib-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/espressif/esp-phy-lib/dcfdccf6cc2fc02d0886624b7998c890d1a19b28/LICENSE",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "esp32-wifi-lib-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/espressif/esp32-wifi-lib/f2aae4d44ec7908013066e69d29b9948846c335c/LICENSE",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "esp32c3-bt-lib-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/espressif/esp32c3-bt-lib/e5c0f7256ecf5b5f8eb28c1793051a6b88f95124/LICENSE",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "FatFs-NOTICE.txt",
+    "source": "Arduino-ESP32 3.20017.241212+sha.dcc1105b/tools/sdk/esp32s3/include/fatfs/src/ff.h",
+    "sha256": "81560b2499d6bd3dccb5412b2a146256f1bae0f1f711bf7188f38a5ae4beac27"
+  },
+  {
+    "file": "FreeRTOS-MIT.txt",
+    "source": "https://raw.githubusercontent.com/espressif/esp-idf/38eeba213aa695aabfd6d89aa9f5078dbe5a94c3/components/freertos/LICENSE.md",
+    "sha256": "508a77d2e7b51d98adeed32648ad124b7b30241a8e70b2e72c99f92d8e5874d1"
+  },
+  {
+    "file": "GCC-GPL-3.0.txt",
+    "source": "PlatformIO toolchain-xtensa-esp32s3 8.4.0+2021r2-patch5/share/licenses/gcc/COPYING3",
+    "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+  },
+  {
+    "file": "GCC-RUNTIME-EXCEPTION.txt",
+    "source": "PlatformIO toolchain-xtensa-esp32s3 8.4.0+2021r2-patch5/share/licenses/gcc/COPYING.RUNTIME",
+    "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74"
+  },
+  {
+    "file": "littlefs-BSD-3-Clause.txt",
+    "source": "https://raw.githubusercontent.com/littlefs-project/littlefs/f53a0cc961a8acac85f868b431d2f3e58e447ba3/LICENSE.md",
+    "sha256": "0cb4ff1daf5fdc1359c6a6ee3116092f08fc100c9d58b1b77ab17bfd801f856d"
+  },
+  {
+    "file": "lwIP-COPYING.txt",
+    "source": "https://raw.githubusercontent.com/espressif/esp-lwip/a45be9e438f6cf9c54ec150581819c3b95d5af6b/COPYING",
+    "sha256": "8fb15ebdb19eb669e1d37fcd8e57a44c477fcc0e93a9ab0d181760965f94d5ed"
+  },
+  {
+    "file": "M5GFX-Font0-BSD.txt",
+    "source": "M5GFX 0.2.27/src/lgfx/Fonts/glcdfont.h",
+    "sha256": "29fd6677e64be9a328a0991f795af639d3f79d37ee03844360a37f41dc76f672"
+  },
+  {
+    "file": "mbedTLS-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/espressif/mbedtls/2b8e772fc1cb0732cda3bae7d1e9d6f4cfaf63d9/LICENSE",
+    "sha256": "9b405ef4c89342f5eae1dd828882f931747f71001cfba7d114801039b52ad09b"
+  },
+  {
+    "file": "newlib-COPYING.txt",
+    "source": "PlatformIO toolchain-xtensa-esp32s3 8.4.0+2021r2-patch5/share/licenses/newlib/COPYING.NEWLIB",
+    "sha256": "dec5d419a7a4b27c064c8367a21e5d7b58aefc162719dc169bc4f82a88994859"
+  },
+  {
+    "file": "SOURCE-EMBEDDED-NOTICES.txt",
+    "source": "Original copyright/license comment blocks from the pinned SDK, M5GFX, M5Unit-NFC and M5Utility source files named inside",
+    "sha256": "10b275a512b1b74578e5e20daeb887ea94c938ac5a64bd10522e6f2c1aae4524"
+  },
+  {
+    "file": "TLSF-BSD-3-Clause.txt",
+    "source": "https://raw.githubusercontent.com/espressif/esp-idf/38eeba213aa695aabfd6d89aa9f5078dbe5a94c3/components/heap/heap_tlsf.h",
+    "sha256": "ed6fb03d1f60749069487729e2570f47042b1ec235375e0382f1a97757dc57f1"
+  },
+  {
+    "file": "wpa-supplicant-BSD.txt",
+    "source": "https://raw.githubusercontent.com/espressif/esp-idf/38eeba213aa695aabfd6d89aa9f5078dbe5a94c3/components/wpa_supplicant/README",
+    "sha256": "17ccbcf4b17a910795292fb4a95f4742d2ecda37d06fcf20d60ffbd70cfbc609"
+  },
+  {
+    "file": "wpa-supplicant-COPYING.txt",
+    "source": "https://raw.githubusercontent.com/espressif/esp-idf/38eeba213aa695aabfd6d89aa9f5078dbe5a94c3/components/wpa_supplicant/COPYING",
+    "sha256": "e9f84e02bb9ba965464e21604014f13d0f3c9299a1b5f7882574a9b4a261abe7"
+  }
+]
