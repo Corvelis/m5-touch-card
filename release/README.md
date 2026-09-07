@@ -98,7 +98,7 @@ Flutterが実行時に使う生成プラグインのURIは残るため、個人�
 - [x] ローカル候補のファイル名・日英手順・SHA-256の一致（公開時にも対象ファイルを照合）
 - [x] 利用者提供の写真とノーカット動画4本を用意し、日英READMEに4本分の掲載欄を準備
 - [x] 動画4本をGitHubへ添付し、日英READMEの仮リンクを差し替え、各URLのプレイヤーへの変換を確認
-- [ ] ブラウザ上で日英READMEの動画再生操作を確認
+- [x] ログイン済みブラウザで日英READMEの計8プレイヤーの映像表示・再生時間の進行・エラーなしを確認
 - [x] 同一機種ペア・網羅的なSD故障/電源断などの確認範囲外をリリース説明へ明記
 - [x] GitHub上の初回CI成功を確認
 - [ ] GitHub上の最終配布リンクを確認
@@ -128,5 +128,5 @@ are recorded in the [distribution review](../docs/distribution-review.en.md). In
 See [installation](../docs/install.en.md) and [release notes](notes-v0.1.0.en.md).
 The bilingual READMEs include the approved photo and four sections for uncut, real-speed videos.
 All four videos are uploaded as GitHub attachments and referenced in both READMEs. GitHub's Markdown renderer generates a player for each matching file.
-Browser playback verification remains separate from this rendering check.
+All eight players across both READMEs were also tested in an authenticated browser: video frames displayed, playback time advanced and no media errors occurred.
 Videos do not need to be included as Release assets; see the [media publishing steps](../docs/media/README.md).

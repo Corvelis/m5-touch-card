@@ -99,17 +99,18 @@ The source/relink test modified only a verification copy; that modified image wa
 スマホ動画はiPhone開発版で撮影したことを明記しています。
 利用者の希望により、交換だけでなく4本すべてをREADME内で埋め込み再生する方針です。
 [添付・管理方法](media/README.md)を記録しました。動画4本の添付とURL取得は完了し、GitHubのMarkdown描画で各URLが対応するファイル名のプレイヤーになることを確認済みです。
-ブラウザでの日英READMEの再生操作確認は別途記録します。
+ログイン済みブラウザで日英README各4本、計8プレイヤーの映像表示・再生時間の進行を確認し、メディアエラーがないことを確認しました（2026-09-07）。
 動画をReleaseの配布ファイルに添付することは前提にしていません。
 
 ## 公開工程の残り / Publication steps remaining
 
 1. [公開前チェック](publishing.md)に沿って最終コミットと配布候補の対応を確認し、v0.1.0タグを付ける。
 2. 確定ソースと対応するZIP・APK・通知・対応ソース・チェックサムを同じReleaseへ添付する。
-3. 日英READMEの動画再生操作、最終CI、ダウンロードリンクと公開設定を確認する。
+3. 最終CI、ダウンロードリンクと公開設定を確認する。
 
 ローカルの `publish_ready: false` は、最終タグ・Releaseと実際の一般公開が未完了であることを表します。
 実機の再確認待ちではありません。動画の埋め込み対応では署名鍵・作者設定・GitHubアカウント設定を変更していません。
 
-The remaining work is final source/tag verification, publishing matching release files, and checking browser playback, final CI and download links.
+All eight players across the Japanese and English READMEs were tested in an authenticated browser: frames displayed, playback time advanced and no media errors occurred.
+The remaining work is final source/tag verification, publishing matching release files, and checking final CI and download links.
 No additional hardware verification is requested. Local preparation does not itself publish the project.

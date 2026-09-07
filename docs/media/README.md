@@ -36,7 +36,8 @@
    実際の再生確認後に[公開準備結果](../publication-readiness.md)と[リリースのチェック項目](../../release/README.md)を完了へ更新します。
 
 動画のRelease添付は埋め込み再生の前提にしません。Releaseの配布物はAPK・ファームウェア・対応ソース・チェックサムを中心にします。
-添付URLの発行とGitHubのMarkdown描画によるプレイヤー生成は確認済みです。ブラウザでの再生操作確認は、この描画確認と区別して記録します。
+添付URLの発行とGitHubのMarkdown描画によるプレイヤー生成は確認済みです。
+2026-09-07にログイン済みブラウザで日英READMEの各4本、計8プレイヤーを操作し、映像の表示・再生時間の進行・エラーがないことを確認しました。
 仕様: [READMEへの動画添付](https://github.blog/changelog/2021-05-13-video-uploads-now-generally-available/) / [添付方法・容量・形式](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files)。
 
 スマホの動画はiPhone開発版で撮影しています。初回リリースはiPhoneのIPA・TestFlight配布を含みません。
@@ -62,7 +63,8 @@ Reuse the same four URLs in the English README. Keep the editor-generated attach
 Check for obsolete URLs or temporary links after updating both READMEs. The upload-pending notices have already been removed.
 Check all four players in each language in GitHub's preview and saved README, including logged-out access after public publication.
 Sync web edits back locally before pushing again, then update the readiness record and release checklist.
-Release attachments are not required. Uploads and GitHub player rendering are confirmed; browser playback checks are recorded separately from rendering checks.
+Release attachments are not required. Uploads and GitHub player rendering are confirmed.
+On September 7, 2026, all four players in each README (eight total) were tested in an authenticated browser: video frames displayed, playback time advanced, and no media errors occurred.
 
 The iPhone demo uses a development build; initial iOS distribution is source-build only.
 Footage was recorded on September 6–7, 2026; some visual details, such as the red LED, may differ from the release version.
