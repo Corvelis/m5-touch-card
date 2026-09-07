@@ -11,34 +11,38 @@ Android/iPhone用編集アプリです。
 
 ## デモ
 
-<!-- BEGIN VIDEO-UPLOAD-NOTICE -->
-動画の埋め込み再生はGitHub公開時に反映します。現在は動画ファイルへのリンクです。
-<!-- END VIDEO-UPLOAD-NOTICE -->
-
 ### 名刺交換 · 約25秒
 
 端末を近づけて名刺を交換。受け取った相手の名刺が、両方の画面に表示されます。
 
 <!-- BEGIN VIDEO: card-exchange -->
-[名刺交換の動画](docs/media/01-card-exchange.mp4)
+
+https://github.com/user-attachments/assets/cd2798ff-c891-4521-8a90-304021eb681b
+
 <!-- END VIDEO: card-exchange -->
 
 ### スマホから更新 · 約31秒
 
 <!-- BEGIN VIDEO: phone-update -->
-[スマホから名刺を更新する動画](docs/media/02-phone-update.mp4)
+
+https://github.com/user-attachments/assets/b0046ea4-0d4f-4b6d-bd87-edb3436d9dc6
+
 <!-- END VIDEO: phone-update -->
 
 ### デザインを選ぶ · 約31秒
 
 <!-- BEGIN VIDEO: card-designs -->
-[名刺のデザインを変更する動画](docs/media/03-card-designs.mp4)
+
+https://github.com/user-attachments/assets/99213d5d-7417-4696-aaa6-da09b605a35e
+
 <!-- END VIDEO: card-designs -->
 
 ### 名刺帳を見る · 約17秒
 
 <!-- BEGIN VIDEO: card-book -->
-[受け取った名刺を確認する動画](docs/media/04-card-book.mp4)
+
+https://github.com/user-attachments/assets/7bbaaae1-e9f9-4768-aa49-6665adaf12c1
+
 <!-- END VIDEO: card-book -->
 
 4本とも実機撮影・ノーカット・等速です。

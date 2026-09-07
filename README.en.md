@@ -11,34 +11,38 @@ with an Android/iPhone editor.
 
 ## Demos
 
-<!-- BEGIN VIDEO-UPLOAD-NOTICE -->
-Inline video playback will be added when publishing on GitHub. These are currently links to the video files.
-<!-- END VIDEO-UPLOAD-NOTICE -->
-
 ### Exchange cards · About 25 seconds
 
 Bring the devices together to exchange cards. Each screen then shows the card it received.
 
 <!-- BEGIN VIDEO: card-exchange -->
-[Card exchange video](docs/media/01-card-exchange.mp4)
+
+https://github.com/user-attachments/assets/cd2798ff-c891-4521-8a90-304021eb681b
+
 <!-- END VIDEO: card-exchange -->
 
 ### Update from your phone · About 31 seconds
 
 <!-- BEGIN VIDEO: phone-update -->
-[Phone update video](docs/media/02-phone-update.mp4)
+
+https://github.com/user-attachments/assets/b0046ea4-0d4f-4b6d-bd87-edb3436d9dc6
+
 <!-- END VIDEO: phone-update -->
 
 ### Choose a design · About 31 seconds
 
 <!-- BEGIN VIDEO: card-designs -->
-[Card design video](docs/media/03-card-designs.mp4)
+
+https://github.com/user-attachments/assets/99213d5d-7417-4696-aaa6-da09b605a35e
+
 <!-- END VIDEO: card-designs -->
 
 ### Browse received cards · About 17 seconds
 
 <!-- BEGIN VIDEO: card-book -->
-[Card book video](docs/media/04-card-book.mp4)
+
+https://github.com/user-attachments/assets/7bbaaae1-e9f9-4768-aa49-6665adaf12c1
+
 <!-- END VIDEO: card-book -->
 
 All four videos show real hardware, uncut and at original speed.

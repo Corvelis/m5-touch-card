@@ -4,38 +4,38 @@
 
 ## 現在の状態 / Current status
 
-- ソース整理、日英ドキュメント、配布候補、写真と動画4本の掲載準備は完了しています。動画の埋め込みはGitHubへの添付と実URLへの差し替え待ちです。
+- ソース整理、日英ドキュメント、配布候補、写真と動画4本の掲載準備は完了しています。日英READMEの4本ともGitHubの添付URLへ差し替えました。
 - Androidの署名済みAPKはXiaomi / Android 16へインストール・起動確認済みです。以前の端末側インストール制限は解消しています。
 - **利用者から実機確認は完了済みと報告されています。** Android・本体のリリース向け実機受け入れは完了として扱い、再実施を求めません。
 - 今回は文書と掲載素材・確認記録を更新しました。新たな実機試験、書き込み、アプリのインストールは行っていません。
-- GitHubリポジトリの作成、コミット、push、タグ、Releaseの公開は未実施です。
+- GitHubリポジトリへの初回登録（`b4a28f7`）は完了し、[初回CI](https://github.com/Corvelis/m5-touch-card/actions/runs/34129879730)も成功しています。タグ・Releaseの公開は未実施です。
 
 実機受け入れの根拠は利用者の完了報告です。既存の自動テスト、インストール結果、起動ログと区別して記録しています。
 同一機種ペアや網羅的なSD故障・電源断試験まで新たに検証済みとするものではありません。
 既知の範囲は[実装状況](implementation_status.ja.md)と[リリース説明](../release/notes-v0.1.0.ja.md)に残しています。
 
-Source/docs/media preparation and user-confirmed release hardware acceptance are complete. Inline videos still need GitHub uploads and attachment URLs.
+Source/docs/media preparation and user-confirmed release hardware acceptance are complete. All four video sections in both READMEs now use GitHub attachment URLs.
 The signed Android APK was installed and launched successfully. The earlier device-side installation restriction is resolved.
 This documentation update did not rerun hardware tests, flash devices or reinstall apps.
-Publication, commit/tag and hosted CI verification remain outstanding. User-confirmed acceptance does not imply exhaustive same-model or SD-failure testing.
+The initial source upload and hosted CI succeeded. Tagging and release publication remain outstanding. User-confirmed acceptance does not imply exhaustive same-model or SD-failure testing.
 
 ## 整理済みの内容 / Prepared materials
 
 - 日本語をデフォルトにした日英README、操作・導入・更新ガイド、リリース説明。
-- `docs/media/` に写真・ノーカット動画4本・サムネイルを保持。日英READMEは動画ごとの4見出しへ整理し、添付URLへの差し替え欄を準備しています。現在の動画リンクは仮の相対リンクです。
+- `docs/media/` に写真・ノーカット動画4本・サムネイルを保持。日英READMEは動画ごとの4見出しにGitHubの添付URLを配置し、仮の相対リンクと公開待ち案内を削除しました。
 - デバイスのホーム画像・個人名刺・バックアップ・鍵・署名設定・作業用ファイルは公開対象外。掲載用に利用者が提供・確認したメディアだけを含めます。
 - `.gitignore`、公開候補チェック、開発・不具合報告・セキュリティ案内、CIの読み取り権限と依存バージョンの固定。
 - 自作コードのMIT、第三者フォント・ランタイムの原文・著作権表示、対応ソースと再リンク用資料。
 - 実装範囲と過去の設計資料の区別。旧通信の参照・回帰検査に使う `migration/legacy` は維持。
 
-The READMEs share a hero photo and four separate video sections prepared for inline playback. Relative video links remain as temporary fallbacks until upload.
+The READMEs share a hero photo and four separate video sections with GitHub attachment URLs for inline playback. Temporary links and upload-pending notices were removed.
 Only the approved publication media are included; raw recordings and editing files remain excluded.
 
 ## 自動検査の記録 / Automated verification
 
 以下は既存のビルド・試験記録です。今回の文書整理でファームウェアやAPKを再ビルドしたという意味ではありません。
 公開候補だけの作業用コピーを使い、SDK・ダウンロードキャッシュは既存環境を利用しています。
-完全に新しいOS・空のキャッシュや、GitHub上での実行を意味しません。
+完全に新しいOS・空のキャッシュでの検証を意味しません。別途、GitHub上の初回CI成功も確認しています。
 
 | 検査 / Check | 結果 / Result |
 | --- | --- |
@@ -98,20 +98,18 @@ The source/relink test modified only a verification copy; that modified image wa
 軽量化済みMP4は各10MB未満、4本合計約21MBです。元の撮影動画や編集作業用ファイルは含めません。
 スマホ動画はiPhone開発版で撮影したことを明記しています。
 利用者の希望により、交換だけでなく4本すべてをREADME内で埋め込み再生する方針です。
-[添付・差し替え手順](media/README.md)を準備しました。動画の外部アップロード、添付URLの取得、GitHub上でのプレイヤー確認は未実施です。
+[添付・管理方法](media/README.md)を記録しました。動画4本の添付とURL取得は完了し、GitHubのMarkdown描画で各URLが対応するファイル名のプレイヤーになることを確認済みです。
+ブラウザでの日英READMEの再生操作確認は別途記録します。
 動画をReleaseの配布ファイルに添付することは前提にしていません。
 
 ## 公開工程の残り / Publication steps remaining
 
-1. GitHubの所有者・リポジトリ名・公開範囲、公開用の作者名・メールを確定する。
-2. [公開前チェック](publishing.md)に沿ってファイルを選択し、staged検査・コミット・push・v0.1.0タグを実施する。
-3. 確定ソースと対応するZIP・APK・通知・対応ソース・チェックサムを同じReleaseへ添付する。
-4. 動画4本をGitHubに添付し、日英READMEの仮リンクを同じ4つの添付URLへ差し替え、公開待ち案内を削除する。
-5. GitHub上の初回CI、READMEの画像と両言語の動画4本の埋め込み再生、ダウンロードリンクと公開設定を確認する。
+1. [公開前チェック](publishing.md)に沿って最終コミットと配布候補の対応を確認し、v0.1.0タグを付ける。
+2. 確定ソースと対応するZIP・APK・通知・対応ソース・チェックサムを同じReleaseへ添付する。
+3. 日英READMEの動画再生操作、最終CI、ダウンロードリンクと公開設定を確認する。
 
-ローカルの `publish_ready: false` は、公開先・ソースコミット/タグと実際の公開が未確定であることを表します。
-実機の再確認待ちではありません。署名鍵・Git設定・GitHubアカウント設定は、この文書整理では変更していません。
+ローカルの `publish_ready: false` は、最終タグ・Releaseと実際の一般公開が未完了であることを表します。
+実機の再確認待ちではありません。動画の埋め込み対応では署名鍵・作者設定・GitHubアカウント設定を変更していません。
 
-The remaining work is repository/author selection, staging and commit/tag, publishing matching release files, uploading four README videos,
-reusing their attachment URLs in both languages, and checking hosted CI, inline playback and links.
+The remaining work is final source/tag verification, publishing matching release files, and checking browser playback, final CI and download links.
 No additional hardware verification is requested. Local preparation does not itself publish the project.

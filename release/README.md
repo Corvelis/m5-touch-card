@@ -97,9 +97,11 @@ Flutterが実行時に使う生成プラグインのURIは残るため、個人�
 - [x] SDK・画像デコーダー等の原文・由来の照合と収録検査（配布条件の確認を参照）
 - [x] ローカル候補のファイル名・日英手順・SHA-256の一致（公開時にも対象ファイルを照合）
 - [x] 利用者提供の写真とノーカット動画4本を用意し、日英READMEに4本分の掲載欄を準備
-- [ ] [メディアの公開手順](../docs/media/README.md)に沿って動画をGitHubへ添付し、日英READMEの4本すべての埋め込み再生を確認
+- [x] 動画4本をGitHubへ添付し、日英READMEの仮リンクを差し替え、各URLのプレイヤーへの変換を確認
+- [ ] ブラウザ上で日英READMEの動画再生操作を確認
 - [x] 同一機種ペア・網羅的なSD故障/電源断などの確認範囲外をリリース説明へ明記
-- [ ] GitHub上の公開リンクと初回CIを確認
+- [x] GitHub上の初回CI成功を確認
+- [ ] GitHub上の最終配布リンクを確認
 
 ## English
 
@@ -125,5 +127,6 @@ Native Android notices are verified inside the signed APK. SDK component notice/
 are recorded in the [distribution review](../docs/distribution-review.en.md). Include the source ZIP in the final checksums.
 See [installation](../docs/install.en.md) and [release notes](notes-v0.1.0.en.md).
 The bilingual READMEs include the approved photo and four sections for uncut, real-speed videos.
-Upload the four videos as GitHub attachments, replace the temporary links in both READMEs, and verify inline playback before marking media publication complete.
+All four videos are uploaded as GitHub attachments and referenced in both READMEs. GitHub's Markdown renderer generates a player for each matching file.
+Browser playback verification remains separate from this rendering check.
 Videos do not need to be included as Release assets; see the [media publishing steps](../docs/media/README.md).
