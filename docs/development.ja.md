@@ -77,4 +77,4 @@ GitHub Actionsでは本体4構成、C++テスト、Flutter解析・テスト、�
 - `scripts/`: フォント生成・描画確認・配布ツール
 - `migration/legacy/`: 移植元の参照コードと回帰検査用データ。現行アプリの入口ではありません。
 
-変更提案と不具合報告は[CONTRIBUTING](../CONTRIBUTING.md)、対応ソースの再リンクは[こちら](../release/corresponding-source.md)を参照してください。
+対応ソースの再リンクは[こちら](../release/corresponding-source.md)を参照してください。

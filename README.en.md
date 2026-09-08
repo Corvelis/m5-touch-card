@@ -6,7 +6,6 @@
 
 Offline NFC business cards for M5 PaperMono and official StackChan.
 Edit your name and icon on a phone, tap to update your device, and keep received cards in a card book.
-No Wi-Fi connection or cloud account is required.
 
 ![Business cards on PaperMono and StackChan](docs/media/devices.jpg)
 
@@ -85,16 +84,15 @@ Real hardware, uncut and at original speed. The phone demo was recorded on an iP
 
 ## Compatibility and notes
 
-- Both devices must run M5 Touch Card. Legacy v1 image-transfer firmware is incompatible.
+- Both devices must run M5 Touch Card.
 - PaperMono ↔ StackChan exchange has been tested on hardware. Same-model pairs remain untested.
-- Cards are stored as plaintext on internal storage/microSD. NFC has no encryption or cryptographic peer authentication. Keep backups of important data.
-- QR codes contain the URL you choose. The app does not create or publish web pages.
+- QR codes contain the URL you choose.
 
 ## Development and licenses
 
 Original code is [MIT-licensed](LICENSE). Third-party libraries and fonts retain their own licenses.
 Each firmware release includes a matching source ZIP with relinking instructions.
 
-- [Build and test](docs/development.en.md) / [Contributing and bug reports](CONTRIBUTING.md)
+- [Build and test](docs/development.en.md)
 - [Protocol](protocol/specification.md) / [Security](SECURITY.md)
-- [Third-party notices](THIRD_PARTY_NOTICES.md) / [Redistribution](docs/distribution-review.en.md) / [Source and relinking](release/corresponding-source.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md) / [Redistribution](docs/distribution-review.en.md)

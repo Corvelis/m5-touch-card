@@ -6,7 +6,6 @@
 
 M5 PaperMonoと公式ｽﾀｯｸﾁｬﾝで使える、オフラインのNFC名刺交換アプリです。
 スマホで名前やアイコンを編集し、本体にタッチして更新。受け取った名刺は名刺帳に保存できます。
-Wi-Fi接続やクラウドアカウントは不要です。
 
 ![PaperMonoとスタックチャンに表示した名刺](docs/media/devices.jpg)
 
@@ -85,16 +84,15 @@ https://github.com/user-attachments/assets/7bbaaae1-e9f9-4768-aa49-6665adaf12c1
 
 ## 対応・注意点
 
-- 交換する両方の本体にM5 Touch Cardが必要です。旧v1画像転送ファームウェアとは通信できません。
+- 交換する両方の本体にM5 Touch Cardが必要です。
 - PaperMono ↔ StackChanの交換は実機確認済みです。同一機種2台での交換は未検証です。
-- 名刺は本体・SDへ平文で保存され、NFC通信に暗号化・暗号学的な相手認証はありません。大切なデータはバックアップしてください。
-- QRは自分で設定したURLを表します。Webページを作成・公開する機能はありません。
+- QRは自分で設定したURLを表します。
 
 ## 開発・ライセンス
 
 自作コードは[MITライセンス](LICENSE)です。外部ライブラリ・フォントにはそれぞれのライセンスが適用されます。
 ファームウェアと同じリリースに、対応ソースと再リンク手順を含むZIPを添付しています。
 
-- [ビルド・テスト](docs/development.ja.md) / [開発への参加・不具合報告](CONTRIBUTING.md)
+- [ビルド・テスト](docs/development.ja.md)
 - [通信仕様](protocol/specification.md) / [セキュリティ](SECURITY.md)
-- [第三者通知](THIRD_PARTY_NOTICES.md) / [再配布の案内](docs/distribution-review.ja.md) / [対応ソース・再リンク](release/corresponding-source.md)
+- [第三者通知](THIRD_PARTY_NOTICES.md) / [再配布の案内](docs/distribution-review.ja.md)

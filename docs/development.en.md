@@ -76,4 +76,4 @@ source hygiene and release scripts.
 - `scripts/`: font generation, rendering checks and release tools
 - `migration/legacy/`: reference code and regression fixtures, not the current app entry point
 
-See [CONTRIBUTING](../CONTRIBUTING.md) for changes and bug reports, and the [relinking guide](../release/corresponding-source.md) for modifying bundled library sources.
+See the [relinking guide](../release/corresponding-source.md) for modifying bundled library sources.
