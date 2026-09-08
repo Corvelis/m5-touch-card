@@ -17,6 +17,14 @@ Offline NFC business cards for PaperMono and StackChan, with an Android editor.
 - Independently update the card icon, clock/calendar photo and full-screen photo by NFC.
 - Japanese/English UI on devices and phone.
 
+## PaperMono power saving and refresh
+
+- With the light off, the CPU enters light sleep when NFC waiting/transfers, storage and other work are idle.
+- It wakes at each clock minute boundary to partially update the time and battery. Button B wakes it and turns the light on.
+- At each local :00, a full-screen cleaning refresh reduces ghosting. It is deferred during NFC and other busy work. An unset clock and full-screen photos are excluded.
+- Fixed display-history invalidation around sleep that caused a full refresh every minute.
+- Flashed and hash-verified on PaperMono. Current draw and battery runtime have not been measured. StackChan behavior and the Android app are unchanged.
+
 ## Install
 
 Follow the [installation guide](../docs/install.en.md) and select your board's ZIP and the Android APK from Assets.

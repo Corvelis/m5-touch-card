@@ -13,6 +13,7 @@
 #include "PaperCard.h"
 #include "PaperHome.h"
 #include "PaperFooter.h"
+#include "PaperLightSleep.h"
 extern const unsigned char paperFontData[] asm("_binary_assets_TouchSansJP_ttf_start");
 #endif
 #include "DefaultImageData.h"
@@ -50,6 +51,10 @@ tc::MutualExchange mutual;
 tc::ScreenBlanker screenBlanker;
 #if TOUCH_CARD_PAPER_MONO
 tc::PaperFooterCache paperFooterCache;
+tc::PaperWakeButton paperWakeButton;
+tc::PaperSleepRetry paperSleepRetry;
+tc::PaperHourlyRefresh paperHourlyRefresh;
+PaperLightSleep paperSleep;
 #endif
 int dashboardBattery = -999;
 bool paper() {
@@ -884,6 +889,15 @@ void render() {
                         : int(millis() / 60000) + 600000;
   lastDay = now.valid ? now.value.tm_yday : -1;
   lastStatusUpdate = millis();
+#if TOUCH_CARD_PAPER_MONO
+  if (refresh == tc::PaperRefresh::Clean) {
+    // Boot already performs a clean frame. At :00 it counts as this hour's
+    // maintenance, rather than immediately causing a second clean waveform.
+    paperHourlyRefresh.observe(now.valid && !(screen == Screen::Home && home == 2),
+        now.value.tm_year, now.value.tm_yday, now.value.tm_hour, now.value.tm_min);
+    paperHourlyRefresh.completed();
+  }
+#endif
 }
 void waitNfc(bool phone, bool sender = false, bool mutualMode = false) {
   if (!mutualMode) mutual.reset();
@@ -1234,6 +1248,52 @@ void tap(int x, int y) {
   if (row >= 0)
     activate(row);
 }
+// Called at every idle exit, including the minute-update early-return path.
+// A task delay alone does not enter light sleep in the pinned Arduino build.
+void finishLoop() {
+#if TOUCH_CARD_PAPER_MONO
+  if (screenBlanker.off && paperSleepRetry.ready(millis())) {
+    const auto now = clockValue.localTime();
+    const uint32_t uptime = millis();
+    const int minute = now.valid ? now.value.tm_yday * 1440 + now.value.tm_hour * 60 + now.value.tm_min
+                                 : int(uptime / 60000) + 600000;
+    const bool busy = M5.Display.displayBusy();
+    const tc::PaperSleepState state{
+      true, screenBlanker.off,
+      nfc.active || screen == Screen::Nfc, mutual.active || mutual.switching,
+      nfc.receiver.commitPending || nfc.receiver.clockPending,
+      storage.catalog.scanning, busy,
+      paperSleep.buttonPressed() || M5.BtnB.isPressed(),
+      tc::minuteStatusDue(uptime, lastStatusUpdate, minute, lastMinute, busy)
+    };
+    if (tc::canPaperSleep(state)) {
+      timeval wall = {};
+      const bool validWall = now.valid && gettimeofday(&wall, nullptr) == 0 && wall.tv_sec >= 0;
+      const uint64_t unixUs = validWall ? uint64_t(wall.tv_sec) * 1000000 + wall.tv_usec : 0;
+      const auto windowUs = tc::paperMinuteSleepUs(validWall, unixUs, millis());
+      const auto result = tc::enterPaperSleep(paperSleep, windowUs);
+      if (result.wake == tc::PaperWake::Error) {
+        paperSleepRetry.failure(millis());
+        Serial.printf("[tc.power.sleep] error=%d retry_ms=5000\n", result.error);
+      } else {
+        paperSleepRetry.success();
+        if (result.wake == tc::PaperWake::Button) paperWakeButton.wake();
+        // ESP-IDF advances the system clock/esp_timer across light sleep.
+        // Check the minute immediately on return, not after another 1s gate.
+        lastClock = millis() - 1000;
+        if (result.wake != tc::PaperWake::Skipped) {
+          Serial.printf("[tc.power.sleep] wake=%s requested_ms=%lu\n",
+              result.wake == tc::PaperWake::Button ? "button" :
+              result.wake == tc::PaperWake::Timer ? "minute" : "other",
+              (unsigned long)(windowUs / 1000));
+          return;
+        }
+      }
+    }
+  }
+#endif
+  delay(nfc.active ? 1 : 5);
+}
 } // namespace
 void setup() {
 #if TOUCH_CARD_PAPER_MONO
@@ -1321,6 +1381,9 @@ void loop() {
   // Wake controls must be handled before the lock, otherwise a dark PaperMono
   // could never be unlocked. B is reserved for its light on every screen.
   bool displayToggled = paper() ? M5.BtnB.wasClicked() : M5.BtnPWR.wasClicked();
+#if TOUCH_CARD_PAPER_MONO
+  displayToggled = paperWakeButton.toggle(displayToggled, paperSleep.buttonPressed(), M5.BtnB.isPressed());
+#endif
   if (displayToggled) {
     const auto brightness = screenBlanker.toggle(M5.Display.getBrightness());
     M5.Display.setBrightness(brightness);
@@ -1426,9 +1489,20 @@ void loop() {
     int minute = now.valid ? now.value.tm_yday * 1440 + now.value.tm_hour * 60 +
                                  now.value.tm_min
                            : int(millis() / 60000) + 600000;
+    bool hourlyClean = false;
+#if TOUCH_CARD_PAPER_MONO
+    paperHourlyRefresh.observe(now.valid && !(screen == Screen::Home && home == 2),
+        now.value.tm_year, now.value.tm_yday, now.value.tm_hour, now.value.tm_min);
+    // Never spend a cleaning waveform inside a transfer or storage operation.
+    // Check pending maintenance even if this minute's status was already drawn.
+    const bool maintenanceBusy = !displayInitialized || nfc.active || screen == Screen::Nfc ||
+        mutual.active || mutual.switching || nfc.receiver.commitPending ||
+        nfc.receiver.clockPending || storage.catalog.scanning || M5.Display.displayBusy();
+    hourlyClean = paperHourlyRefresh.due(maintenanceBusy);
+#endif
     if (!tc::minuteStatusDue(millis(), lastStatusUpdate, minute, lastMinute,
-                            paper() && M5.Display.displayBusy())) {
-      delay(5);
+                            paper() && M5.Display.displayBusy()) && !hourlyClean) {
+      finishLoop();
       return;
     }
     lastMinute = minute;
@@ -1438,40 +1512,49 @@ void loop() {
       if (!paper()) lastDay = day;
       if (!paper() && (screen == Screen::Month || (screen == Screen::Home && home == 1))) {
         render();
-        delay(5);
+        finishLoop();
         return;
       }
     }
 #if TOUCH_CARD_PAPER_MONO
-    // Date/calendar catch-up is regional too, and deferred while dark. Never
-    // invoke render() from a PaperMono minute update, even across midnight.
+    // Keep dark dates deferred. A lit midnight update is batched into the
+    // hourly clean below; ordinary date catch-up remains regional.
     if (day != lastDay && !screenBlanker.off) {
-      refreshPaperDate(now.value, now.valid);
-      lastDay = day;
+      if (!hourlyClean) {
+        refreshPaperDate(now.value, now.valid);
+        lastDay = day;
+      }
     }
 #endif
     if (!(screen == Screen::Home && home == 2)) {
 #if TOUCH_CARD_PAPER_MONO
-      M5.Display.setEpdMode(epd_mode_t::epd_fastest);
+      M5.Display.setEpdMode(hourlyClean ? epd_mode_t::epd_quality : epd_mode_t::epd_fastest);
       tc::setPaperFontMonochrome(true);
 #endif
-      M5.Display.startWrite();
-      if (screen == Screen::Home && home == 1)
-        clockDashboard(false);
-      else
-        status();
-      M5.Display.endWrite();
-      // Keep the photograph out of the monochrome update's bounding box:
-      // the PaperMono clock and battery are above the photo, in separate regions.
-      if (screen == Screen::Home && home == 1 &&
-          dashboardBattery != M5.Power.getBatteryLevel()) {
-        M5.Display.startWrite();
-        dashboardBatteryStatus();
-        M5.Display.endWrite();
+      const bool batteryChanged = screen == Screen::Home && home == 1 &&
+          dashboardBattery != M5.Power.getBatteryLevel();
+      tc::paintPaperMinute(M5.Display, hourlyClean, batteryChanged, [&] {
+#if TOUCH_CARD_PAPER_MONO
+        if (hourlyClean && day != lastDay && !screenBlanker.off) {
+          tc::updatePaperDate(M5.Display, now.value, now.valid, screen, home);
+          lastDay = day;
+        }
+#endif
+        if (screen == Screen::Home && home == 1) clockDashboard(false);
+        else status();
+      }, [] { dashboardBatteryStatus(); });
+#if TOUCH_CARD_PAPER_MONO
+      if (hourlyClean) {
+        // Quality refreshes the retained framebuffer: never reload a card,
+        // reveal the sleeping footer, or change brightness for maintenance.
+        paperHourlyRefresh.completed();
+        M5.Display.setEpdMode(epd_mode_t::epd_fastest);
       }
-      if (paper()) Serial.printf("[tc.ui.minute] partial=1 light_off=%u\n", screenBlanker.off);
+      Serial.printf("[tc.ui.minute] partial=%u hourly_clean=%u light_off=%u\n",
+          !hourlyClean, hourlyClean, screenBlanker.off);
+#endif
     }
   }
-  // Keep emulation responsive during a touch; preserve idle power behaviour.
-  delay(nfc.active ? 1 : 5);
+  // Transfers stay responsive; an idle dark PaperMono sleeps until minute/B.
+  finishLoop();
 }

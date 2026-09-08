@@ -40,7 +40,7 @@ Name ordering is UTF-8 lexical order, not phonetic Japanese sorting. Newest orde
 **Home screen** offers Card, Photo + clock and Full-screen photo. The photo/clock home opens a month calendar; full-screen photos open the menu when tapped.
 PaperMono places a native 128px clock and date above the existing square photo, with a labeled week below.
 The month view uses a large month heading, centered dates and a black circle for today.
-Minute updates change only the clock rectangle, never the photo; a date change refreshes the calendar too.
+Ordinary minute updates change only the clock rectangle, leaving photo content intact; a date change refreshes the calendar too. PaperMono additionally cleans the retained full frame once at each local :00 minute, as described below.
 The menu has a **Home** action at the bottom. **Settings → Card design** selects Typography, Contrast or Simple.
 The lower-right card button always says **Menu** and opens the main menu, including design/orientation previews and received cards, on both devices. In a preview, tapping elsewhere still returns to the selected home screen.
 PaperMono additionally offers portrait/landscape orientation for cards and enlarged QR; settings and image homes keep their normal orientation.
@@ -57,7 +57,16 @@ PaperMono uses fast differential updates for menus and limited progress updates 
   Waking restores only the footer with a fast partial update, without a full-screen cleaning waveform. Input resumes after the update and release of held inputs.
   Turning the light off hides only the bottom controls/divider, in portrait and landscape; the card, clock and battery remain.
   Controls return on wake. The photo/clock home also hides its footer; full-screen photos are never cropped or blanked.
-  NFC and saving continue; toggling does not cancel an exchange. Clock and battery regions update every minute even while dark, without repainting photos, cards or hidden controls. Full-screen photos remain overlay-free.
+  NFC and saving continue; toggling does not cancel an exchange. Ordinary minute updates change the clock and battery regions even while dark, leaving photos, cards and hidden controls intact. Full-screen photos remain overlay-free.
+  PaperMono runs one full-screen cleaning refresh at each local :00 minute (09:00, 10:00, etc.), both lit and dark. This intentionally flickers once through a cleaning sequence while retaining the frame contents and brightness. Clock/battery changes and lit date changes share one transaction, rather than triggering multiple full refreshes.
+  NFC waiting/transfers, saving, catalog scans and drawing defer hourly cleaning until idle. Pending hours coalesce into one cleaning refresh. An unset clock and the overlay-free full-screen photo are excluded. A clean boot render at :00 counts for that hour.
+  When dark and idle, PaperMono enters CPU light sleep. NFC waiting/transfers, pending saves, catalog scans and display work defer sleep.
+  It wakes at the next minute boundary, updates the clock/battery without turning on the light, then sleeps again. B wakes and lights the screen; its release is consumed so it cannot immediately turn the light off again.
+  Touch and A do not wake the CPU. SD insertion/removal is checked after wake, so detection while sleeping can take about one minute.
+  CPU light sleep preserves application memory and panel history; it does not reboot or itself force a full-screen refresh. The minute sleep/wake cycle does not switch panel power or power-save mode: those transitions invalidate the driver's differential baseline and would force unwanted whole-screen clock updates every minute. Hourly cleaning is deliberate and separate. No extra panel-controller sleep is applied. Peripheral/SD power rails are not cut.
+  Sleep failures leave the device awake, with retries no more often than every five seconds. `[tc.power.sleep]` logs minute/button wakes or errors.
+  USB connection does not prevent sleep; serial responsiveness while asleep is not guaranteed. Wake with B before diagnostics.
+  The corrected partial updates, hourly cleaning and actual current savings still require hardware verification.
   Busy display updates are retried. Date/calendar changes while dark are deferred until the next lit periodic update, then repainted regionally. Some e-paper ghosting or local flicker remains possible.
 - StackChan B confirms the selected row (or cancels NFC).
 - StackChan power-button short press toggles screen brightness to zero and back. Touch/A/B input is suppressed while dark and until held inputs are released after waking. NFC, saving and clock updates continue; transfer completion does not automatically light the screen.

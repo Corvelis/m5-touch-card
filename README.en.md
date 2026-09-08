@@ -67,7 +67,8 @@ iPhone is source-build only initially; no IPA or TestFlight distribution. Releas
 - Japanese/English settings, persistent language choice and selectable build defaults.
 - PaperMono accidental power-button reset/shutdown protection; B toggles the light.
   Touch/A are locked while dark and bottom controls are hidden. Waking with B restores only the controls using a partial update.
-  Time/battery update every minute while dark; date/calendar changes catch up after waking.
+  Time/battery normally update regionally each minute while dark, with one full-frame cleaning refresh at each local :00 (deferred during NFC). Unset clocks and full-screen photos are excluded from hourly cleaning. Date/calendar changes catch up after waking.
+  While dark and idle, PaperMono enters light sleep until the next minute update or B press; NFC, saving, drawing and catalog scans defer sleep.
   StackChan power-button short press toggles the screen only; NFC and storage keep running while dark.
 
 PaperMono ↔ StackChan exchange has been tested on hardware. The user has confirmed completion of release hardware checks;
