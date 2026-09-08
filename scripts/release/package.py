@@ -141,7 +141,7 @@ def prepare(root, build_root, framework, output, version, nm=None):
             "release/corresponding-source.md": "docs/corresponding-source.md",
         }.items():
             entries[target] = (root / source).read_bytes()
-        entries["README.md"] = (f"# Touch Card {version} — {board}\n\n"
+        entries["README.md"] = (f"# M5 Touch Card {version} — {board}\n\n"
                                  "[インストール（日本語）](docs/install.ja.md) · [Installation (English)](docs/install.en.md)\n\n"
                                  "`ja/`: 日本語初期 / Japanese default. `en/`: English default.\n"
                                  "対応ソース / Matching source: `touch-card-v" + version + "-firmware-sources.zip` (same Release).\n"

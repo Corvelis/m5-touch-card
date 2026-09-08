@@ -1,10 +1,10 @@
 # Installation
 
-[日本語](install.ja.md) · [English](install.en.md) · [Overview](../README.md)
+[日本語](install.ja.md) · [English](install.en.md) · [Overview](https://github.com/Corvelis/m5-touch-card)
 
-The first release is planned as a normal **v0.1.0**, with device firmware and an Android APK.
-Distribution is being prepared. Once published, use this repository's **Releases → v0.1.0 → Assets**.
-No IPA or TestFlight distribution is included initially; iPhone source builds are for developers only.
+Download your device's files from **v0.1.0 → Assets** in [Releases](https://github.com/Corvelis/m5-touch-card/releases).
+Flash device firmware from a USB-connected PC, and install the Android app by opening the APK.
+For iPhone, follow the [source-build instructions](#iphone-for-developers).
 
 ## 1. Choose the correct download
 
@@ -118,6 +118,7 @@ If initial internal storage fails, check connections, media and backups before f
 - No port: check the USB data cable, connection and device power.
 - Connection failure: close serial monitors, disconnect other boards and follow the manufacturer's download-mode procedure.
   [PaperMono](https://docs.m5stack.com/en/core/PaperMono) / [StackChan](https://docs.m5stack.com/en/StackChan)
+- PaperMono with the light off: press B to wake it before flashing. USB may not respond during light sleep.
 - Interrupted transfer: retry with `--baud 115200`. Failed backups stop before any write.
 - Hash mismatch: do not flash; download the release again.
 - No boot: check the board/package match, power and write/verification result. Keep the backup when asking for help.
@@ -126,14 +127,12 @@ If initial internal storage fails, check connections, media and backups before f
 See [esptool 4.x documentation](https://docs.espressif.com/projects/esptool/en/release-v4/esp32/esptool/basic-commands.html) for command background.
 Do not copy generic ESP32 example offsets: this product uses the ESP32-S3 addresses encoded in its package.
 
-## iPhone: developers only initially
+## iPhone: for developers
 
-No IPA or TestFlight distribution is included in the first release. Source builds require macOS/Xcode, Flutter, CocoaPods and signing/provisioning that supports NFC.
+Source builds require macOS/Xcode, Flutter, CocoaPods and signing/provisioning that supports NFC. No IPA or TestFlight distribution is available.
 
 1. Get the same release source and run `flutter pub get --enforce-lockfile` in `mobile/`.
 2. Run `pod install --deployment` in `mobile/ios/` to install the locked dependencies (tested with CocoaPods 1.16.2).
 3. Open `mobile/ios/Runner.xcworkspace` in Xcode. In Runner's Signing & Capabilities, select your Team and an available Bundle Identifier.
 4. Check NFC Tag Reading entitlements/provisioning, select a connected NFC-capable iPhone and build/run.
 5. Do not commit signing settings, certificates or device identifiers. The simulator cannot test NFC communication.
-
-Consumer TestFlight instructions will be added when that distribution becomes available.

@@ -1,10 +1,10 @@
 # インストール
 
-[日本語](install.ja.md) · [English](install.en.md) · [概要](../README.md)
+[日本語](install.ja.md) · [English](install.en.md) · [概要](https://github.com/Corvelis/m5-touch-card)
 
-初回リリースは通常の `v0.1.0` とし、本体ファームウェアとAndroid APKを配布する構成です。
-現在は配布準備中です。公開後、このリポジトリの **Releases → v0.1.0 → Assets** から取得してください。
-IPA・TestFlightは初回配布に含めません。iPhone向けは末尾の開発者向け手順のみです。
+[Releases](https://github.com/Corvelis/m5-touch-card/releases)の **v0.1.0 → Assets** から、使用する機器のファイルをダウンロードしてください。
+本体はUSB接続のPCから書き込み、AndroidアプリはAPKを開いてインストールします。
+iPhoneは[ソースからのビルド](#iphone-開発者向け)に対応します。
 
 ## 1. ダウンロードするもの
 
@@ -122,6 +122,7 @@ PaperMonoはライト消灯中にタッチできません。Bボタンで点灯�
 - ポートが出ない: データ対応ケーブル、USB接続先、本体の電源を確認します。
 - 接続失敗: シリアルモニターを閉じ、他の本体を外します。本体をメーカー指定のダウンロードモードにして再試行します。
   [PaperMono公式](https://docs.m5stack.com/en/core/PaperMono) / [StackChan公式](https://docs.m5stack.com/en/StackChan)
+- PaperMonoが消灯中: Bボタンでライトを点けてから書き込んでください。ライトスリープ中はUSB接続に応答しない場合があります。
 - 通信が途切れる: `--baud 115200` を追加して再試行します。バックアップが失敗した場合は書き込みへ進みません。
 - ハッシュ検証失敗: 書き込まずに配布ファイルを再ダウンロードしてください。
 - 起動しない: 機種の取り違え、電源、書き込み完了/検証結果を確認します。バックアップを消さずに問い合わせてください。
@@ -130,14 +131,12 @@ PaperMonoはライト消灯中にタッチできません。Bボタンで点灯�
 書き込みの基礎とオプションは[esptool 4系の公式資料](https://docs.espressif.com/projects/esptool/en/release-v4/esp32/esptool/basic-commands.html)を参照してください。
 本製品の書き込み先はESP32-S3用で、同資料の汎用例のアドレスをそのまま使わないでください。
 
-## iPhone: 開発者向けのみ
+## iPhone: 開発者向け
 
-初回リリースではIPA・TestFlightを配布しません。macOS/Xcode、Flutter、CocoaPodsとNFC対応の署名・プロビジョニングを用意できる開発者向けにソースを提供します。
+macOS/Xcode、Flutter、CocoaPodsと、NFCに対応する署名・プロビジョニングが必要です。IPA・TestFlightでの配布はありません。
 
 1. リリースと同じソースを取得し、`mobile/`で `flutter pub get --enforce-lockfile` を実行します。
 2. `mobile/ios/`で `pod install --deployment` を実行し、固定された依存を用意します（検証済みCocoaPods: 1.16.2）。
 3. `mobile/ios/Runner.xcworkspace` をXcodeで開き、RunnerのSigning & Capabilitiesで自分のTeamと利用可能なBundle Identifierを設定します。
 4. NFC Tag Readingの権限・プロビジョニングを確認し、接続したNFC対応iPhoneを選んでビルド/実行します。
 5. 署名設定・証明書・端末識別情報はGitHubへコミットしないでください。シミュレーターではNFC通信できません。
-
-一般利用者向けのTestFlight導入案内は、配布を開始する段階で追加します。

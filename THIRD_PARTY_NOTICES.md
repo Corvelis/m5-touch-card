@@ -1,33 +1,17 @@
 # Third-party notices
 
-M5 Touch Card development note (2026-09-06): the following audit and notices were
-inherited from paper-mono-nfc-image-transfer. See `migration/README.md` for the
-source revision. The current firmware links the NFC dependencies listed below.
-Preserve the original notices; audit
-the final linked/package contents again before distributing this new product.
+This summary identifies the dependencies pinned by M5 Touch Card. It does not
+replace the full license texts shipped with each component. See
+`migration/README.md` for source provenance.
 
-Source-publication preparation (2026-09-07): the existing project, artwork,
-OFL and vendored stb license texts are retained unchanged. M5Utility 0.2.0 and
-M5HAL 0.1.2 are now explicit build pins; M5Unit-NFC 0.1.0 is pinned to upstream
-commit `93745b547364f310cd64b5155a870103a7800a5d`. These are the already tested
-versions, not dependency upgrades. Launcher assets are inherited from the same
-source repository; see the root/mobile project licenses and migration record.
-
-This file records the dependency audit performed against the versions locked
-by this repository on 2026-09-01. It is a summary, not a replacement for the
-complete license texts shipped by each dependency. Upstream license files are
-authoritative.
-
-Release-artifact audit (2026-09-07): the Android release package classpath was
-checked against the actual cached AAR/JAR artifacts and 44 fixed-version
-Google Maven/Maven Central POMs. Native Apache-2.0 texts, packaged NOTICE
+The Android dependency inventory covers 44 native artifacts. Apache-2.0 texts, packaged NOTICE
 entries, ReLinker's copyright-bearing license and mime's nested HTTPD license
 are retained in `mobile/licenses/ANDROID-NATIVE-NOTICES.txt`, included by
 Flutter in the existing license page. The public artifact inventory and hashes
 are in `release/android-dependencies.json`. Flutter's engine/Dart notices remain
-in its generated NOTICES bundle; no iOS native binary is distributed initially.
+in its generated NOTICES bundle. iPhone distribution is source-only.
 
-MIT publication policy (2026-09-07): M5 Touch Card's original code remains MIT;
+M5 Touch Card's original code is MIT-licensed;
 third-party fonts and libraries retain their own terms. The StackChan clock
 and transfer-progress numerals now use Touch Digits, an OFL-1.1 bitmap subset
 of TouchSansJP, instead of GNU FreeFont-derived FreeSans. The generated data
@@ -39,7 +23,7 @@ Distribute `touch-card-v0.1.0-firmware-sources.zip` alongside firmware; it
 contains the matching application and Arduino library sources plus relinking
 instructions. Extra runtime license texts and provenance are in
 `release/licenses/runtime/`. These do not relicense dependencies as MIT.
-See `docs/distribution-review.ja.md` for completed and pending artifact checks.
+See `docs/distribution-review.ja.md` and `docs/distribution-review.en.md` for redistribution guidance.
 
 All dependencies listed below permit commercial use. Their attribution,
 notice, source-availability, and redistribution conditions still apply.
@@ -53,7 +37,7 @@ notice in `LICENSE`; support requests for this extracted product belong here.
 
 ## Firmware runtime dependencies
 
-PaperMono typography update (2026-09-06): `firmware/assets/TouchSansJP.ttf`
+`firmware/assets/TouchSansJP.ttf`
 is a weight-500 subset of Google Fonts Noto Sans JP, retaining 7,689 characters
 (CP932 Japanese, kana, Latin and UI symbols). Copyright 2014–2021 Adobe;
 SIL Open Font License 1.1, full text in `firmware/assets/TouchSansJP-OFL.txt`.

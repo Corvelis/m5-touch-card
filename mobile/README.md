@@ -3,7 +3,7 @@
 FlutterのAndroid/iPhone共通アプリ。入口は `lib/main.dart` → `TouchCardApp`。
 
 配布版の導入は[日本語インストール手順](../docs/install.ja.md) / [English](../docs/install.en.md)を参照。
-初回はAndroid APKを配布し、iPhoneはソースビルドのみとします。IPA・TestFlightは初回配布の対象外です。
+AndroidはAPKからインストールできます。iPhoneはソースからビルドします。
 
 ## 操作
 
@@ -38,7 +38,6 @@ flutter build ios --simulator --no-codesign
 ```
 
 iOS実機はNFC対応iPhoneと開発者自身のTeam/署名が必要です。シミュレーターではNFC通信できません。
-今回の言語変更はテスト・ビルドまでです。新しい版の実機NFC・権限画面の確認は別途必要です。
 
 English instructions: [project README](../README.en.md) and [operation guide](../docs/operation.en.md).
 

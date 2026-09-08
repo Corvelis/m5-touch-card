@@ -2,42 +2,43 @@
 
 [日本語](notes-v0.1.0.ja.md) · [English](notes-v0.1.0.en.md)
 
-Release-note draft for a normal release. Add the final commit/tag and actual download/corresponding-source links
-before publication. Creating this file does not publish a release.
-
-Offline NFC business cards for PaperMono and StackChan, with an Android editor.
-
-[Watch the exchange (about 25 seconds)](../docs/media/01-card-exchange.mp4) · [Four hardware demos](../README.en.md#demos)
+Tap to exchange business cards on PaperMono and StackChan.
+Edit on a phone, update via NFC, and store received cards internally or on microSD.
 
 ## Features
 
-- Exchange both cards or send/receive one way. Completion displays the other person's card.
-- Round icons, optional contacts/QR link/note, three designs, and portrait/landscape cards on PaperMono.
-- Browse/sort/delete received cards; internal/microSD storage with usage and free-space information.
-- Independently update the card icon, clock/calendar photo and full-screen photo by NFC.
+- Exchange both cards, or send/receive one way. The received card appears on screen.
+- Round icons and three designs. Contacts, QR URL and note are optional; PaperMono supports portrait/landscape.
+- Browse by name/latest receipt, view details and delete individual cards. Check internal/microSD usage and free space.
+- Update card details, icons, home photos and time from a phone via NFC.
 - Japanese/English UI on devices and phone.
+- PaperMono enters light sleep while dark and idle. Time/battery update partially each minute, with a full cleaning refresh at each local :00.
+- StackChan's short power-button press toggles the screen.
 
-## PaperMono power saving and refresh
+## Download and install
 
-- With the light off, the CPU enters light sleep when NFC waiting/transfers, storage and other work are idle.
-- It wakes at each clock minute boundary to partially update the time and battery. Button B wakes it and turns the light on.
-- At each local :00, a full-screen cleaning refresh reduces ghosting. It is deferred during NFC and other busy work. An unset clock and full-screen photos are excluded.
-- Fixed display-history invalidation around sleep that caused a full refresh every minute.
-- Flashed and hash-verified on PaperMono. Current draw and battery runtime have not been measured. StackChan behavior and the Android app are unchanged.
+[Installation](../docs/install.en.md) · [Operation guide](../docs/operation.en.md) · [Hardware demos](../README.en.md#demos)
 
-## Install
+Choose from **Assets** in [Releases](https://github.com/Corvelis/m5-touch-card/releases).
 
-Follow the [installation guide](../docs/install.en.md) and select your board's ZIP and the Android APK from Assets.
-Each ZIP includes Japanese/English initial-language variants. iPhone is source-build only; no IPA or TestFlight distribution is included.
-Data from the older image-transfer product is not automatically migrated. Keep the pre-install backup.
+| File | Contents |
+| --- | --- |
+| `touch-card-v0.1.0-paper-mono.zip` | M5 PaperMono C153 firmware |
+| `touch-card-v0.1.0-stackchan.zip` | Official StackChan K151 / K151-R firmware |
+| `touch-card-v0.1.0-android.apk` | Signed app for NFC-capable Android 7.0 or later |
+| `touch-card-v0.1.0-firmware-sources.zip` | Corresponding source and relinking instructions |
+| `SHA256SUMS` | Download checksums |
 
-## Compatibility and verification
+Firmware ZIPs include Japanese/English defaults and the flashing tool. Language can also be changed in Settings.
+For existing M5 Touch Card installations, follow the guide's update procedure. Matching storage layouts allow cards, images and settings to be preserved.
+iPhone supports [source builds](../docs/install.en.md#iphone-for-developers); no IPA or TestFlight distribution is available.
 
-- Supported: PaperMono C153, official StackChan K151 / K151-R and NFC-capable Android phones.
-- PaperMono ↔ StackChan exchange has been tested on hardware.
-- Same-model pairs and every SD-failure/power-loss recovery scenario remain unverified.
-- Signed Android APK installation and launch are verified. Release hardware acceptance is complete based on the user's confirmation.
-- The [readiness record](../docs/publication-readiness.md) distinguishes automated verification from user-confirmed hardware acceptance.
-- Cards are plaintext; NFC does not provide cryptographic peer authentication or encryption.
+## Notes
 
-Report the model, version, steps and error number. Never attach real cards, personal photos or flash backups.
+- PaperMono Lite, DIY StackChans and other M5 cores are not supported. Legacy v1 image-transfer firmware is not protocol/data compatible.
+- PaperMono ↔ StackChan exchange has been tested on hardware. Same-model pairs remain untested.
+- Fast e-paper updates may leave ghosting. Startup and hourly cleaning refreshes make the screen flash.
+- Cards are plaintext and NFC has no encryption or cryptographic peer authentication. Back up important data before flashing or initializing storage.
+
+Original code is [MIT-licensed](../LICENSE); third-party components retain their own terms. See [notices](../THIRD_PARTY_NOTICES.md) and [corresponding source](corresponding-source.md).
+Report issues with the model, version, steps and error number. Do not attach real cards or flash backups.

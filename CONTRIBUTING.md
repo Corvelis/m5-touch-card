@@ -1,6 +1,6 @@
 # Contributing / 開発への参加
 
-日本語・Englishどちらの不具合報告や変更提案も受け付ける構成です。
+不具合報告や変更提案は、日本語・Englishのどちらでも受け付けています。
 対応機種・セットアップは[日本語README](README.md) / [English README](README.en.md)を参照してください。
 
 ## 変更と検査 / Changes and checks
@@ -23,7 +23,7 @@ node scripts/check_public_source.mjs
 node scripts/check_public_source.mjs --staged
 ```
 
-Firmware/C++/Flutter検査のコマンドはREADMEに掲載しています。ネイティブ通信検査は
+Firmware/C++/Flutter検査は[ビルド・テスト](docs/development.ja.md) / [Build and test](docs/development.en.md)を参照してください。ネイティブ通信検査は
 `node scripts/check_native_protocol.mjs`、PaperMono描画検査は[描画ツール](scripts/paper_preview/README.md)を参照してください。
 CI checks four firmware environments, C++ tests, Flutter analysis/tests, and source hygiene.
 Android/iOS builds, native Kotlin/Swift vectors and physical devices still require the documented local checks.
